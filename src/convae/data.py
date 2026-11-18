@@ -31,3 +31,13 @@ def get_datasets(name: str, root: str = "data", img_size: int = 32, val_fraction
     perm = torch.randperm(len(full), generator=g).tolist()
     n_val = int(len(full) * val_fraction)
     return Subset(full, perm[n_val:]), Subset(full, perm[:n_val]), test
+
+
+def get_ood_dataset(name: str, root: str = "data", img_size: int = 32):
+    """Jeu 'hors distribution' (jamais vu à l'entraînement), pour la détection d'anomalies."""
+    tf = _tf(img_size)
+    if name == "svhn":
+        return datasets.SVHN(root, split="test", download=True, transform=tf)
+    if name == "fake":
+        return datasets.FakeData(128, (3, img_size, img_size), 10, transform=transforms.ToTensor(), random_offset=2)
+    raise ValueError(f"jeu OOD inconnu : {name}")
