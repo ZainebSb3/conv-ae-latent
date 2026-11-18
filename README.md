@@ -24,7 +24,6 @@ flowchart TB
 ```
 
 Each convolution is followed by BatchNorm and ReLU, except the output layer.
-Each convolution is followed by BatchNorm and ReLU, except the output layer.
 - **Encoder**: three stride-2 convolutions (learned downsampling), then a linear layer to a flat latent vector `z` of size `d` (16 to 256). A vector, not a feature map, so that a linear probe, a distance, or a fixed-size code can be applied directly.
 - **Decoder**: nearest-neighbor upsampling + convolution instead of transposed convolutions, to avoid checkerboard artifacts; sigmoid output in [0, 1].
 - **Loss**: pixel MSE (PSNR is a direct function of MSE). Adam, lr 1e-3, batch 128, 30 epochs; the checkpoint with the best validation MSE is kept (10% of the training set held out for validation; the test set is used only for final numbers).
