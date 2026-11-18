@@ -58,7 +58,7 @@ Protocol: features standardized with train statistics, regularization `C` chosen
 **Reading**: training improves on a random encoder (+3.7 points), but the latent is no more linearly informative about the class than a PCA of the same size: the difference (0.16 points) is well below the standard error of a 10,000-image accuracy (about 0.5 points). An MSE objective keeps what is expensive to reconstruct (global color, low frequencies), which is also what PCA keeps, not what separates classes.
 
 ![t-SNE](assets/tsne.png)
-*t-SNE of 5,000 test latents (qualitative only: t-SNE does not preserve global distances).*
+*t-SNE of 5,000 test latents (qualitative only: t-SNE does not preserve global distances). With the trained encoder, airplanes form a visible group and ships and trucks share a region, consistent with a latent driven by background and global color; the random encoder is more mixed.*
 
 ### 3. Out-of-distribution detection (d = 64)
 
@@ -67,7 +67,7 @@ Normal: CIFAR-10 test (10,000). Anomalies: SVHN test (26,032), never seen during
 | score | AUROC | FPR at 95% TPR |
 |---|---|---|
 | reconstruction error | 0.073 | 1.000 |
-| kNN distance in latent (k = 5) | 0.287 | 0.985 |
+| kNN distance in latent (k = 5) | 0.286 | 0.985 |
 | Mahalanobis distance in latent | 0.257 | 0.994 |
 | kNN, random encoder | 0.203 | 0.996 |
 | Mahalanobis, random encoder | 0.177 | 0.999 |
