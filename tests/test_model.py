@@ -13,7 +13,7 @@ def test_shapes_and_range(d):
     x_hat, z = model(x)
     assert z.shape == (4, d)
     assert x_hat.shape == x.shape
-    assert x_hat.min() >= 0 and x_hat.max() <= 1  # sortie sigmoïde
+    assert x_hat.min() >= 0 and x_hat.max() <= 1  # sigmoid output
 
 
 def test_seed_reproducible():
@@ -26,7 +26,7 @@ def test_seed_reproducible():
 
 
 def test_can_overfit_tiny_batch():
-    # Si le modèle n'arrive pas à mémoriser 4 images simples, il y a un bug (gradient, forme, etc.).
+    # If the model cannot memorize 4 simple images, something is broken (gradients, shapes, ...).
     set_seed(0)
     colors = torch.tensor([[1, 0, 0], [0, 1, 0], [0, 0, 1], [1, 1, 0]], dtype=torch.float32)
     x = colors[:, :, None, None].expand(4, 3, 32, 32).contiguous()

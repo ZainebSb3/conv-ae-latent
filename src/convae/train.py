@@ -1,4 +1,4 @@
-"""Entraînement de l'autoencodeur.
+"""Autoencoder training.
 
 python -m convae.train --config configs/cifar10_d64.yaml
 python -m convae.train --config configs/cifar10_d64.yaml --set model.latent_dim=128 run_name=cifar10_d128
@@ -28,7 +28,7 @@ def evaluate(model, loader, device):
         err = (x_hat - x) ** 2
         se += err.sum().item()
         n_pix += err.numel()
-        psnr_sum += psnr(err.flatten(1).mean(1)).sum().item()  # PSNR par image puis moyenne
+        psnr_sum += psnr(err.flatten(1).mean(1)).sum().item()  # per-image PSNR, then mean
         n_img += x.size(0)
     return se / n_pix, psnr_sum / n_img
 
@@ -36,7 +36,7 @@ def evaluate(model, loader, device):
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--config", required=True)
-    ap.add_argument("--set", nargs="*", default=[], help="surcharges cle.sous_cle=valeur")
+    ap.add_argument("--set", nargs="*", default=[], help="overrides key.subkey=value")
     args = ap.parse_args()
 
     cfg = load_config(args.config, args.set)
@@ -66,7 +66,7 @@ def main():
         for ep in range(1, t["epochs"] + 1):
             model.train()
             t0, tot, n = time.time(), 0.0, 0
-            for x, _ in train_dl:  # les labels sont ignorés : apprentissage non supervisé
+            for x, _ in train_dl:  # labels are ignored: unsupervised training
                 x = x.to(device, non_blocking=True)
                 x_hat, _ = model(x)
                 loss = F.mse_loss(x_hat, x)
@@ -80,10 +80,10 @@ def main():
             w.writerow([ep, f"{tot / n:.6f}", f"{val_mse:.6f}", f"{val_psnr:.3f}", f"{dt:.1f}"])
             f.flush()
             print(f"ep {ep:3d}  train_mse {tot / n:.5f}  val_mse {val_mse:.5f}  val_psnr {val_psnr:.2f} dB  ({dt:.0f}s)")
-            if val_mse < best:  # on garde le meilleur modèle sur la validation, pas le dernier
+            if val_mse < best:  # keep the best model on validation, not the last one
                 best = val_mse
                 torch.save({"model": model.state_dict(), "config": cfg, "epoch": ep}, out / "best.pt")
-    print(f"meilleur val_mse={best:.5f} -> {out / 'best.pt'}")
+    print(f"best val_mse={best:.5f} -> {out / 'best.pt'}")
 
 
 if __name__ == "__main__":

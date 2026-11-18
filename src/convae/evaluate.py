@@ -1,4 +1,4 @@
-"""Évaluation finale de la reconstruction sur le jeu de TEST (une seule fois, avec best.pt).
+"""Final reconstruction evaluation on the TEST set (run once, with best.pt).
 
 python -m convae.evaluate --run runs/cifar10_d64
 """
@@ -34,7 +34,7 @@ def main():
     Path(args.run, "eval_test.json").write_text(json.dumps(res, indent=2))
     print(json.dumps(res, indent=2))
 
-    # Grille : ligne du haut = originaux, ligne du bas = reconstructions (premières images du test)
+    # Grid: top row = originals, bottom row = reconstructions (first test images)
     x = torch.stack([test[i][0] for i in range(args.n_show)]).to(device)
     with torch.no_grad():
         x_hat, _ = model(x)

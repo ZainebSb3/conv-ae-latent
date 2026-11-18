@@ -1,4 +1,4 @@
-"""Chargement d'un modèle entraîné et extraction des latents avec l'encodeur gelé."""
+"""Loading a trained model and extracting latents with the frozen encoder."""
 from pathlib import Path
 
 import numpy as np
@@ -9,7 +9,7 @@ from convae.model import ConvAutoencoder
 
 
 def load_model(run_dir: str, device, pretrained: bool = True):
-    """Recharge l'AE d'un run. pretrained=False -> même architecture, poids aléatoires (référence)."""
+    """Reloads a run's AE. pretrained=False -> same architecture, random weights (baseline)."""
     ckpt = torch.load(Path(run_dir) / "best.pt", map_location=device, weights_only=False)
     cfg = ckpt["config"]
     m = cfg["model"]
@@ -18,15 +18,15 @@ def load_model(run_dir: str, device, pretrained: bool = True):
     model = ConvAutoencoder(m["latent_dim"], tuple(m["channels"]), cfg["data"]["img_size"])
     if pretrained:
         model.load_state_dict(ckpt["model"])
-    model.to(device).eval()  # eval() : BatchNorm utilise ses statistiques apprises, pas celles du batch
+    model.to(device).eval()  # eval(): BatchNorm uses its learned statistics, not the batch's
     for p in model.parameters():
-        p.requires_grad_(False)  # encodeur gelé
+        p.requires_grad_(False)  # frozen encoder
     return model, cfg
 
 
 @torch.no_grad()
 def extract_latents(model, dataset, device, batch_size: int = 512):
-    """Renvoie Z (N, d) et y (N,) en numpy."""
+    """Returns Z (N, d) and y (N,) as numpy arrays."""
     zs, ys = [], []
     for x, y in DataLoader(dataset, batch_size, shuffle=False):
         zs.append(model.encode(x.to(device)).cpu())
@@ -35,7 +35,7 @@ def extract_latents(model, dataset, device, batch_size: int = 512):
 
 
 def extract_pixels(dataset, batch_size: int = 1024):
-    """Pixels aplatis (N, 3*H*W), pour les références."""
+    """Flattened pixels (N, 3*H*W), for the baselines."""
     xs, ys = [], []
     for x, y in DataLoader(dataset, batch_size, shuffle=False):
         xs.append(x.flatten(1))

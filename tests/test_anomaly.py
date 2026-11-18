@@ -7,7 +7,7 @@ def test_metrics_perfect_and_inverted():
     normal, anom = np.linspace(0, 1, 50), np.linspace(2, 3, 50)
     r = score_metrics(normal, anom)
     assert r["auroc"] == 1.0 and r["fpr_at_95tpr"] == 0.0
-    assert score_metrics(anom, normal)["auroc"] == 0.0  # score dans le mauvais sens -> AUROC 0
+    assert score_metrics(anom, normal)["auroc"] == 0.0  # score in the wrong direction -> AUROC 0
 
 
 def test_latent_scores_flag_far_points():

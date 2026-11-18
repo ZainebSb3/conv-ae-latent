@@ -14,7 +14,7 @@ def test_extract_latents_shapes():
 
 
 def test_linear_probe_separable():
-    # Deux nuages bien séparés : la sonde doit atteindre ~100 %.
+    # Two well-separated clouds: the probe should reach ~100%.
     rng = np.random.default_rng(0)
     def make(n):
         y = rng.integers(0, 2, n)

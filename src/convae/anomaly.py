@@ -1,11 +1,11 @@
-"""Détection d'anomalies / hors distribution avec l'AE gelé.
+"""Anomaly / out-of-distribution detection with the frozen AE.
 
-Normal = test CIFAR-10 (même distribution que l'entraînement), anomalie = test SVHN.
-Trois scores (plus le score est grand, plus l'image est jugée anormale) :
-  - recon : erreur de reconstruction MSE par image
-  - knn   : distance moyenne aux k plus proches latents du train (latents standardisés)
-  - maha  : distance de Mahalanobis au nuage des latents du train (covariance Ledoit-Wolf)
-Les scores latents sont aussi calculés avec l'encodeur aléatoire, comme référence.
+Normal = CIFAR-10 test (same distribution as training), anomaly = SVHN test.
+Three scores (higher = more anomalous):
+  - recon: per-image reconstruction MSE
+  - knn  : mean distance to the k nearest train latents (standardized latents)
+  - maha : Mahalanobis distance to the train latent cloud (Ledoit-Wolf covariance)
+Latent scores are also computed with the random encoder, as a baseline.
 
 python -m convae.anomaly --run runs/cifar10_d64 --ood svhn
 """
@@ -39,23 +39,23 @@ def recon_errors(model, dataset, device, batch_size=512):
 
 
 def fpr_at_tpr(y, s, tpr_target=0.95):
-    """Taux de faux positifs (normaux signalés) quand 95 % des anomalies sont détectées."""
+    """False positive rate (normal images flagged) when 95% of anomalies are detected."""
     fpr, tpr, _ = roc_curve(y, s)
     return float(fpr[np.searchsorted(tpr, tpr_target, side="left")])
 
 
 def score_metrics(s_normal, s_anom):
-    y = np.r_[np.zeros(len(s_normal)), np.ones(len(s_anom))]  # 1 = anomalie
+    y = np.r_[np.zeros(len(s_normal)), np.ones(len(s_anom))]  # 1 = anomaly
     s = np.r_[s_normal, s_anom]
     return {"auroc": float(roc_auc_score(y, s)), "fpr_at_95tpr": fpr_at_tpr(y, s)}
 
 
 def latent_scores(Ztr, Zn, Za, k):
-    sc = StandardScaler().fit(Ztr)  # statistiques du train uniquement
+    sc = StandardScaler().fit(Ztr)  # train statistics only
     Ztr, Zn, Za = sc.transform(Ztr), sc.transform(Zn), sc.transform(Za)
     nn = NearestNeighbors(n_neighbors=k).fit(Ztr)
     knn = lambda Z: nn.kneighbors(Z)[0].mean(1)
-    lw = LedoitWolf().fit(Ztr)  # covariance régularisée : plus stable que l'empirique
+    lw = LedoitWolf().fit(Ztr)  # shrunk covariance: more stable than the empirical one
     return {"knn": (knn(Zn), knn(Za)), "maha": (lw.mahalanobis(Zn), lw.mahalanobis(Za))}
 
 
@@ -88,7 +88,7 @@ def main():
         results[name] = score_metrics(sn, sa)
         results[name]["mean_normal"], results[name]["mean_anomaly"] = float(sn.mean()), float(sa.mean())
         print(f"{name:12s} AUROC={results[name]['auroc']:.4f}  FPR@95TPR={results[name]['fpr_at_95tpr']:.4f}"
-              f"  moyenne normal={sn.mean():.4g}  anomalie={sa.mean():.4g}")
+              f"  mean normal={sn.mean():.4g}  anomaly={sa.mean():.4g}")
 
     out = Path(args.run)
     (out / f"anomaly_{args.ood}.json").write_text(json.dumps(results, indent=2))

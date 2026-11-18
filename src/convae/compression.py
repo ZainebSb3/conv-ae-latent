@@ -1,11 +1,13 @@
-"""Compression : AE (latent quantifié sur 8 bits) contre JPEG, sur le test CIFAR-10.
+"""Compression: AE (8-bit quantized latent) vs JPEG, on the CIFAR-10 test set.
 
-Débit en bits par pixel (bpp) = bits stockés / (H*W). Qualité : PSNR et SSIM par image, moyennés.
-JPEG est mesuré de deux façons :
-  - jpeg_single : chaque image 32x32 encodée seule (en-tête compris, comme un vrai fichier)
-  - jpeg_mosaic : les 10 000 images assemblées en une mosaïque encodée une fois ; l'en-tête est
-    amorti. 32 est multiple des blocs JPEG (8x8, MCU 16x16 en 4:2:0) : aucun bloc ne mélange deux images.
-Non compté pour l'AE : la taille du décodeur (poids), et le fait qu'il est spécialisé sur CIFAR-10.
+Rate in bits per pixel (bpp) = stored bits / (H*W). Quality: per-image PSNR and SSIM, averaged.
+JPEG is measured two ways:
+  - jpeg_single: each 32x32 image encoded alone (header included, like a real file)
+  - jpeg_mosaic: all 10,000 images tiled into one mosaic encoded once, so the header is amortized.
+    32 is a multiple of the JPEG blocks (8x8, 16x16 MCU in 4:2:0), so no encoder block spans two
+    images. The decoder's chroma upsampling does interpolate across tile borders, which slightly
+    lowers the mosaic PSNR (this disadvantages JPEG, not the AE).
+Not counted for the AE: the decoder size (weights), and the fact that it is specialized on CIFAR-10.
 
 python -m convae.compression --runs runs/cifar10_d16 runs/cifar10_d32 runs/cifar10_d64 runs/cifar10_d128 runs/cifar10_d256
 """
@@ -30,14 +32,14 @@ JPEG_QUALITIES = [5, 10, 20, 30, 50, 70, 90]
 
 
 def quality(ref: np.ndarray, rec: np.ndarray):
-    """ref, rec : (N, H, W, 3) float dans [0, 1]. Renvoie PSNR et SSIM moyens par image."""
+    """ref, rec: (N, H, W, 3) floats in [0, 1]. Returns mean per-image PSNR and SSIM."""
     p = [peak_signal_noise_ratio(a, b, data_range=1.0) for a, b in zip(ref, rec)]
     s = [structural_similarity(a, b, data_range=1.0, channel_axis=-1) for a, b in zip(ref, rec)]
     return float(np.mean(p)), float(np.mean(s))
 
 
 def quantize(z: np.ndarray, lo: np.ndarray, hi: np.ndarray, bits: int):
-    """Quantification uniforme par dimension, bornes apprises sur le train. Renvoie les valeurs déquantifiées."""
+    """Per-dimension uniform quantization, bounds learned on train. Returns dequantized values."""
     levels = 2**bits - 1
     q = np.round((np.clip(z, lo, hi) - lo) / (hi - lo) * levels)
     return (q / levels * (hi - lo) + lo).astype(np.float32)
@@ -83,7 +85,7 @@ def main():
             with torch.no_grad():
                 rec = torch.cat([model.decode(torch.from_numpy(Z[i:i + 1000]).to(device)).cpu()
                                  for i in range(0, len(Z), 1000)])
-            # Arrondi à 8 bits/canal comme un vrai fichier image, pour comparer à JPEG à armes égales
+            # Round to 8 bits/channel like a real image file, for a fair comparison with JPEG
             rec = to_u8(rec.permute(0, 2, 3, 1).numpy()) / 255.0
             psnr, ssim = quality(ref, rec)
             rows.append({"codec": codec, "param": dim, "bpp": dim * bits / n_pix, "psnr": psnr, "ssim": ssim})
@@ -91,7 +93,7 @@ def main():
 
     # --- JPEG ---
     ref_u8 = to_u8(ref)
-    ref = ref_u8 / 255.0  # référence identique pour tous les codecs
+    ref = ref_u8 / 255.0  # same reference for every codec
     N, H, W, _ = ref_u8.shape
     side = int(np.ceil(np.sqrt(N)))
     mosaic = np.zeros((side * H, side * W, 3), np.uint8)

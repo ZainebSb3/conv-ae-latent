@@ -1,10 +1,10 @@
-"""Sonde linéaire : régression logistique sur des représentations figées.
+"""Linear probe: logistic regression on frozen representations.
 
-Compare, à protocole identique :
-  - ae_pretrained : latents de l'encodeur entraîné (dim d)
-  - ae_random     : même architecture, poids aléatoires (l'apprentissage apporte-t-il quelque chose ?)
-  - pca_d         : ACP des pixels à la même dimension d (le non-linéaire bat-il le linéaire ?)
-  - pixels        : pixels bruts, 3072 dims (optionnel, plus lent)
+Compares, under the same protocol:
+  - ae_pretrained: latents of the trained encoder (dim d)
+  - ae_random    : same architecture, random weights (does training add anything?)
+  - pca_d        : PCA of the pixels at the same dimension d (does non-linear beat linear?)
+  - pixels       : raw pixels, 3072 dims (optional, slower)
 
 python -m convae.probe --run runs/cifar10_d64
 """
@@ -26,7 +26,7 @@ C_GRID = [0.01, 0.1, 1.0, 10.0]
 
 
 def linear_probe(Xtr, ytr, Xval, yval, Xte, yte, seed=0):
-    """Standardisation apprise sur le train uniquement ; C choisi sur la validation ; score final sur le test."""
+    """Scaler fit on train only; C chosen on validation; final score on test."""
     sc = StandardScaler().fit(Xtr)
     Xtr, Xval, Xte = sc.transform(Xtr), sc.transform(Xval), sc.transform(Xte)
     best = None
@@ -42,7 +42,7 @@ def linear_probe(Xtr, ytr, Xval, yval, Xte, yte, seed=0):
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--run", required=True)
-    ap.add_argument("--skip_pixels", action="store_true", help="saute la référence pixels bruts (lente)")
+    ap.add_argument("--skip_pixels", action="store_true", help="skip the raw-pixel baseline (slow)")
     args = ap.parse_args()
 
     device = get_device()
@@ -70,7 +70,7 @@ def main():
     Pva, yva = extract_pixels(va)
     Pte, yte = extract_pixels(te)
     k = cfg["model"]["latent_dim"]
-    pca = PCA(n_components=k, random_state=cfg["seed"]).fit(Ptr)  # ACP ajustée sur le train seulement
+    pca = PCA(n_components=k, random_state=cfg["seed"]).fit(Ptr)  # PCA fit on train only
     run(f"pca_{k}", pca.transform(Ptr), ytr, pca.transform(Pva), yva, pca.transform(Pte), yte)
 
     if not args.skip_pixels:

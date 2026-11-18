@@ -2,10 +2,10 @@ run_name: cifar10_d64
 seed: 0
 
 data:
-  name: cifar10        # cifar10 | stl10 | fake (fake = test rapide sans téléchargement)
+  name: cifar10        # cifar10 | stl10 | fake (fake = quick check without download)
   root: data
   img_size: 32
-  val_fraction: 0.1    # pris sur le train ; le test officiel reste intact
+  val_fraction: 0.1    # split off train; the official test set stays untouched
 
 model:
   latent_dim: 64

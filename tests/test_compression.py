@@ -9,7 +9,7 @@ def test_quantize_error_bounded():
     lo, hi = z.min(0), z.max(0)
     zq = quantize(z, lo, hi, bits=8)
     step = (hi - lo) / 255
-    assert np.all(np.abs(zq - z) <= step / 2 + 1e-6)  # erreur max = un demi-pas de quantification
+    assert np.all(np.abs(zq - z) <= step / 2 + 1e-6)  # max error = half a quantization step
 
 
 def test_jpeg_higher_quality_is_bigger_and_closer():
