@@ -1,0 +1,19 @@
+run_name: cifar10_d64
+seed: 0
+
+data:
+  name: cifar10        # cifar10 | stl10 | fake (fake = test rapide sans téléchargement)
+  root: data
+  img_size: 32
+  val_fraction: 0.1    # pris sur le train ; le test officiel reste intact
+
+model:
+  latent_dim: 64
+  channels: [64, 128, 256]
+
+train:
+  epochs: 30
+  batch_size: 128
+  lr: 1.0e-3
+  weight_decay: 0.0
+  num_workers: 2
