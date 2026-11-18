@@ -9,19 +9,22 @@ All numbers below are produced by the scripts in this repository (seed 0, CIFAR-
 ## Architecture
 
 ```mermaid
-flowchart LR
-    X["image 3×32×32"] --> E1["Conv s2 64 · BN · ReLU<br/>16×16"]
-    E1 --> E2["Conv s2 128 · BN · ReLU<br/>8×8"]
-    E2 --> E3["Conv s2 256 · BN · ReLU<br/>4×4"]
-    E3 --> FC1["Linear → z ∈ R^d"]
-    FC1 --> FC2["Linear → 256×4×4"]
-    FC2 --> D1["Upsample · Conv 128 · BN · ReLU<br/>8×8"]
-    D1 --> D2["Upsample · Conv 64 · BN · ReLU<br/>16×16"]
-    D2 --> D3["Upsample · Conv 32 · BN · ReLU<br/>32×32"]
-    D3 --> O["Conv 3 · Sigmoid<br/>3×32×32"]
-    FC1 -. frozen encoder .-> T["linear probe · OOD scores · compression"]
+flowchart TB
+    subgraph ENC["Encoder"]
+        direction LR
+        X["image<br/>3×32×32"] --> E1["Conv s2, 64<br/>16×16"] --> E2["Conv s2, 128<br/>8×8"] --> E3["Conv s2, 256<br/>4×4"]
+    end
+    subgraph DEC["Decoder"]
+        direction LR
+        F["Linear<br/>256×4×4"] --> D1["Up + Conv, 128<br/>8×8"] --> D2["Up + Conv, 64<br/>16×16"] --> D3["Up + Conv, 32<br/>32×32"] --> O["Conv 3 + Sigmoid<br/>3×32×32"]
+    end
+    ENC -- "Linear" --> Z(["z ∈ R^d"])
+    Z --> DEC
+    Z -. frozen encoder .-> T["linear probe · OOD scores · compression"]
 ```
 
+Each convolution is followed by BatchNorm and ReLU, except the output layer.
+Each convolution is followed by BatchNorm and ReLU, except the output layer.
 - **Encoder**: three stride-2 convolutions (learned downsampling), then a linear layer to a flat latent vector `z` of size `d` (16 to 256). A vector, not a feature map, so that a linear probe, a distance, or a fixed-size code can be applied directly.
 - **Decoder**: nearest-neighbor upsampling + convolution instead of transposed convolutions, to avoid checkerboard artifacts; sigmoid output in [0, 1].
 - **Loss**: pixel MSE (PSNR is a direct function of MSE). Adam, lr 1e-3, batch 128, 30 epochs; the checkpoint with the best validation MSE is kept (10% of the training set held out for validation; the test set is used only for final numbers).
